@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Module Test - UniverseSimulator</title>
+  <style>body{font-family:system-ui;padding:20px}#results p{margin:4px 0}</style>
+</head>
+<body>
+  <div id="canvas-container" style="width:100px;height:100px;"></div>
+  <input id="brightness-slider" type="range" min="0" max="100" value="30" />
+  <div id="results"></div>
+  <script type="module">
+    const results = document.getElementById('results');
+    function log(msg, ok) {
+      const p = document.createElement('p');
+      p.textContent = (ok ? '✓ ' : '✗ ') + msg;
+      p.style.color = ok ? 'green' : 'red';
+      results.appendChild(p);
+    }
+    try {
+      const config = await import('./src/config.js');
+      log('config.js', !!config.EARTH_TEXTURE_URL);
+    } catch (e) { log('config.js: ' + e.message, false); }
+    try {
+      const scene = await import('./src/core/scene.js');
+      log('core/scene.js', !!(scene.scene && scene.camera && scene.circleTex));
+    } catch (e) { log('core/scene.js: ' + e.message, false); }
+    try {
+      const lighting = await import('./src/core/lighting.js');
+      log('core/lighting.js', typeof lighting.initLighting === 'function');
+    } catch (e) { log('core/lighting.js: ' + e.message, false); }
+    try {
+      const tex = await import('./src/textures/planetTextures.js');
+      log('textures/planetTextures.js', typeof tex.makePlanetTexture === 'function');
+    } catch (e) { log('textures/planetTextures.js: ' + e.message, false); }
+    try {
+      const state = await import('./src/state/navigation.js');
+      log('state/navigation.js', !!state.navigation);
+    } catch (e) { log('state/navigation.js: ' + e.message, false); }
+    try {
+      const starfield = await import('./src/objects/starfield.js');
+      log('objects/starfield.js', !!(starfield.stars && starfield.dustGroup));
+    } catch (e) { log('objects/starfield.js: ' + e.message, false); }
+    try {
+      const earth = await import('./src/objects/earth.js');
+      log('objects/earth.js', !!(earth.earth && earth.earthHit));
+    } catch (e) { log('objects/earth.js: ' + e.message, false); }
+    try {
+      const solar = await import('./src/solar/solarSystem.js');
+      log('solar/solarSystem.js', !!(solar.solarSystem && solar.sunCore && solar.planets));
+    } catch (e) { log('solar/solarSystem.js: ' + e.message, false); }
+  </script>
+</body>
+</html>
