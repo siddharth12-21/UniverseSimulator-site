@@ -24,6 +24,38 @@
     <canvas id="map-canvas" width="600" height="600"></canvas>
   </div>
   <button id="center-btn">Center</button>
+  <!-- Search bar -->
+  <div id="search-panel">
+    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    <input id="search-input" type="text" placeholder="Search celestial bodies..." autocomplete="off" />
+    <div id="search-results"></div>
+  </div>
+  <!-- Time controls -->
+  <div id="time-panel">
+    <button id="time-slower" title="Slower">&#x25C0;&#x25C0;</button>
+    <button id="time-pause" title="Pause">&#x23F8;</button>
+    <button id="time-play" title="Play">&#x25B6;</button>
+    <button id="time-faster" title="Faster">&#x25B6;&#x25B6;</button>
+    <span id="time-speed">1x</span>
+    <span id="time-date"></span>
+  </div>
+  <!-- Scale indicator -->
+  <div id="scale-indicator">
+    <div id="scale-bar"></div>
+    <span id="scale-label">1 AU</span>
+  </div>
+  <!-- Audio toggle -->
+  <button id="audio-btn" title="Toggle sound">
+    <svg id="audio-icon-on" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
+    </svg>
+    <svg id="audio-icon-off" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none">
+      <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/>
+    </svg>
+  </button>
+  <!-- Tour button -->
+  <button id="tour-btn">Guided Tour</button>
+  <div id="tour-narration"></div>
   <div id="brightness-panel">
     <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <circle cx="12" cy="12" r="5"/>

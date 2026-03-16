@@ -1,30 +1,7 @@
-/**
- * Solar system: Sun, planets, dwarf planets, asteroid belt, Kuiper belt, comets, moons.
- */
-
 import * as THREE from 'https://esm.sh/three@0.160.0';
 import { scene, circleTex } from '../core/scene.js';
 import { earth } from '../objects/earth.js';
-import {
-  makePlanetTexture,
-  makeHeightMap,
-  addNoise,
-  heightMercury,
-  heightVenus,
-  heightMars,
-  heightJupiter,
-  heightSaturn,
-  heightUranus,
-  heightNeptune,
-  heightMoonGeneric,
-  texMercury,
-  texVenus,
-  texMars,
-  texJupiter,
-  texSaturn,
-  texUranus,
-  texNeptune,
-} from '../textures/planetTextures.js';
+import { makePlanetTexture, makeHeightMap, addNoise, heightMercury, heightVenus, heightMars, heightJupiter, heightSaturn, heightUranus, heightNeptune, heightMoonGeneric, texMercury, texVenus, texMars, texJupiter, texSaturn, texUranus, texNeptune } from '../textures/planetTextures.js';
 
 // --- Solar system orbiting around Earth ---
 const solarSystem = new THREE.Group();
@@ -147,19 +124,19 @@ sunGroup.add(sunLensFlare2);
 // --- Planets orbiting the Sun ---
 const tSize = 2048;
 const planetDefs = [
-  { name: 'Mercury', tex: texMercury, height: heightMercury, dispScale: 0.06,  size: 0.3,  orbit: 12, speed: 0.08, tilt: 0.1,  segs: 128 },
-  { name: 'Venus',   tex: texVenus,   height: heightVenus,   dispScale: 0.04,  size: 0.5,  orbit: 18, speed: 0.055, tilt: 0.05, segs: 128 },
-  { name: 'Mars',    tex: texMars,    height: heightMars,    dispScale: 0.06,  size: 0.4,  orbit: 25, speed: 0.035, tilt: 0.08, segs: 128 },
-  { name: 'Jupiter', tex: texJupiter, height: heightJupiter, dispScale: 0.04,  size: 1.6,  orbit: 38, speed: 0.018, tilt: 0.03, segs: 128 },
-  { name: 'Saturn',  tex: texSaturn,  height: heightSaturn,  dispScale: 0.03,  size: 1.3,  orbit: 52, speed: 0.012, tilt: 0.06, segs: 128, hasRing: true },
-  { name: 'Uranus',  tex: texUranus,  height: heightUranus,  dispScale: 0.03,  size: 0.8,  orbit: 65, speed: 0.008, tilt: 0.1, segs: 128 },
-  { name: 'Neptune', tex: texNeptune, height: heightNeptune, dispScale: 0.035, size: 0.75, orbit: 78, speed: 0.005, tilt: 0.04, segs: 128 },
+  { name: 'Mercury', tex: texMercury, height: heightMercury, dispScale: 0.06,  size: 0.3,  orbit: 12, speed: 0.08, tilt: 0.1,  segs: 128, ecc: 0.205, incl: 7.0, axialTilt: 0.03 },
+  { name: 'Venus',   tex: texVenus,   height: heightVenus,   dispScale: 0.04,  size: 0.5,  orbit: 18, speed: 0.055, tilt: 0.05, segs: 128, ecc: 0.007, incl: 3.4, axialTilt: 177.4 },
+  { name: 'Mars',    tex: texMars,    height: heightMars,    dispScale: 0.06,  size: 0.4,  orbit: 25, speed: 0.035, tilt: 0.08, segs: 128, ecc: 0.093, incl: 1.85, axialTilt: 25.2 },
+  { name: 'Jupiter', tex: texJupiter, height: heightJupiter, dispScale: 0.04,  size: 1.6,  orbit: 38, speed: 0.018, tilt: 0.03, segs: 128, ecc: 0.049, incl: 1.3, axialTilt: 3.1 },
+  { name: 'Saturn',  tex: texSaturn,  height: heightSaturn,  dispScale: 0.03,  size: 1.3,  orbit: 52, speed: 0.012, tilt: 0.06, segs: 128, hasRing: true, ecc: 0.057, incl: 2.49, axialTilt: 26.7 },
+  { name: 'Uranus',  tex: texUranus,  height: heightUranus,  dispScale: 0.03,  size: 0.8,  orbit: 65, speed: 0.008, tilt: 0.1, segs: 128, ecc: 0.046, incl: 0.77, axialTilt: 97.8 },
+  { name: 'Neptune', tex: texNeptune, height: heightNeptune, dispScale: 0.035, size: 0.75, orbit: 78, speed: 0.005, tilt: 0.04, segs: 128, ecc: 0.011, incl: 1.77, axialTilt: 28.3 },
 ];
 
 const planetStartAngles = [0, 2.2, 4.1, 1.3, 3.7, 5.5, 0.8];
 const planets = planetDefs.map((def, idx) => {
   const pivot = new THREE.Group();
-  pivot.rotation.x = def.tilt;
+  pivot.rotation.x = (def.incl || 0) * Math.PI / 180;
   pivot.rotation.y = planetStartAngles[idx];
   sunGroup.add(pivot);
 
@@ -179,6 +156,7 @@ const planets = planetDefs.map((def, idx) => {
   const mesh = new THREE.Mesh(new THREE.SphereGeometry(def.size, def.segs, def.segs), mat);
   mesh.userData.name = def.name;
   mesh.userData.size = def.size;
+  mesh.rotation.z = (def.axialTilt || 0) * Math.PI / 180;
   mesh.position.x = def.orbit;
   pivot.add(mesh);
 
@@ -197,7 +175,6 @@ const planets = planetDefs.map((def, idx) => {
     const rc = document.createElement('canvas');
     rc.width = 1024; rc.height = 64;
     const rctx = rc.getContext('2d');
-    // Multi-band ring structure like real Saturn
     const bands = [
       { start: 0, end: 0.05, r: 160, g: 140, b: 110, a: 0 },
       { start: 0.05, end: 0.12, r: 190, g: 170, b: 130, a: 0.4 },
@@ -233,11 +210,10 @@ const planets = planetDefs.map((def, idx) => {
     });
     const ring = new THREE.Mesh(ringGeo, ringMat);
     ring.rotation.x = -Math.PI / 2.4;
-    ring.position.copy(mesh.position);
-    pivot.add(ring);
+    mesh.add(ring);
   }
 
-  return { pivot, mesh, hitSphere, speed: def.speed, name: def.name, size: def.size, moons: [], moonGroup: null };
+  return { pivot, mesh, hitSphere, speed: def.speed, name: def.name, size: def.size, moons: [], moonGroup: null, ecc: def.ecc || 0, orbit: def.orbit, angle: planetStartAngles[idx] || 0 };
 });
 
 // --- Moon definitions (only planets that have notable moons) ---
@@ -338,51 +314,50 @@ const allMoonSystems = [
   ...planets.filter(p => p.moonGroup).map(p => ({ target: p.mesh, group: p.moonGroup, moons: p.moons })),
 ];
 
-export function updateMoonVisibility(getFocusTarget) {
+function updateMoonVisibility(focusTarget) {
   for (const ms of allMoonSystems) {
-    ms.group.visible = (getFocusTarget() === ms.target);
+    ms.group.visible = (focusTarget === ms.target);
   }
 }
 
-// Glowing green orbit lines for each planet (layered tubes for thickness + glow)
+
+// Glowing green orbit lines for each planet (elliptical, inclination matches pivot)
 planetDefs.forEach((def) => {
+  const inclRad = (def.incl || 0) * Math.PI / 180;
+  const ecc = def.ecc || 0;
+  const semiLatusRectum = def.orbit * (1 - ecc * ecc);
   const curve = new THREE.CatmullRomCurve3(
-    Array.from({ length: 181 }, (_, i) => {
-      const a = (i / 180) * Math.PI * 2;
-      return new THREE.Vector3(Math.cos(a) * def.orbit, 0, Math.sin(a) * def.orbit);
+    Array.from({ length: 361 }, (_, i) => {
+      const a = (i / 360) * Math.PI * 2;
+      const r = semiLatusRectum / (1 + ecc * Math.cos(a));
+      return new THREE.Vector3(Math.cos(a) * r, 0, -Math.sin(a) * r);
     }),
     true
   );
 
-  // Outer glow layer (wide, faint)
-  const glowGeo = new THREE.TubeGeometry(curve, 180, 0.25, 6, true);
-  const glowMat = new THREE.MeshBasicMaterial({
+  const glowGeo = new THREE.TubeGeometry(curve, 360, 0.25, 6, true);
+  const glowMesh = new THREE.Mesh(glowGeo, new THREE.MeshBasicMaterial({
     color: 0x44ff66, transparent: true, opacity: 0.06, side: THREE.DoubleSide,
-  });
-  const glowMesh = new THREE.Mesh(glowGeo, glowMat);
-  glowMesh.rotation.x = def.tilt;
+  }));
+  glowMesh.rotation.x = inclRad;
   sunGroup.add(glowMesh);
 
-  // Mid glow layer
-  const midGeo = new THREE.TubeGeometry(curve, 180, 0.12, 6, true);
-  const midMat = new THREE.MeshBasicMaterial({
+  const midGeo = new THREE.TubeGeometry(curve, 360, 0.12, 6, true);
+  const midMesh = new THREE.Mesh(midGeo, new THREE.MeshBasicMaterial({
     color: 0x66ff88, transparent: true, opacity: 0.12, side: THREE.DoubleSide,
-  });
-  const midMesh = new THREE.Mesh(midGeo, midMat);
-  midMesh.rotation.x = def.tilt;
+  }));
+  midMesh.rotation.x = inclRad;
   sunGroup.add(midMesh);
 
-  // Core line (bright, thin)
-  const coreGeo = new THREE.TubeGeometry(curve, 180, 0.04, 4, true);
-  const coreMat = new THREE.MeshBasicMaterial({
+  const coreGeo = new THREE.TubeGeometry(curve, 360, 0.04, 4, true);
+  const coreMesh = new THREE.Mesh(coreGeo, new THREE.MeshBasicMaterial({
     color: 0xaaffbb, transparent: true, opacity: 0.35,
-  });
-  const coreMesh = new THREE.Mesh(coreGeo, coreMat);
-  coreMesh.rotation.x = def.tilt;
+  }));
+  coreMesh.rotation.x = inclRad;
   sunGroup.add(coreMesh);
 });
 
-// Earth orbit ring (radius = Sun-Earth distance)
+// Earth orbit ring (layered green glow)
 {
   const earthOrbit = 22;
   const earthCurve = new THREE.CatmullRomCurve3(
@@ -393,24 +368,21 @@ planetDefs.forEach((def) => {
     true
   );
 
-  const eGlowGeo = new THREE.TubeGeometry(earthCurve, 180, 0.25, 6, true);
-  const eGlowMat = new THREE.MeshBasicMaterial({
-    color: 0x44ff66, transparent: true, opacity: 0.06, side: THREE.DoubleSide,
-  });
-  sunGroup.add(new THREE.Mesh(eGlowGeo, eGlowMat));
-
-  const eMidGeo = new THREE.TubeGeometry(earthCurve, 180, 0.12, 6, true);
-  const eMidMat = new THREE.MeshBasicMaterial({
-    color: 0x66ff88, transparent: true, opacity: 0.12, side: THREE.DoubleSide,
-  });
-  sunGroup.add(new THREE.Mesh(eMidGeo, eMidMat));
-
-  const eCoreGeo = new THREE.TubeGeometry(earthCurve, 180, 0.04, 4, true);
-  const eCoreMat = new THREE.MeshBasicMaterial({
-    color: 0xaaffbb, transparent: true, opacity: 0.35,
-  });
-  sunGroup.add(new THREE.Mesh(eCoreGeo, eCoreMat));
+  sunGroup.add(new THREE.Mesh(
+    new THREE.TubeGeometry(earthCurve, 180, 0.25, 6, true),
+    new THREE.MeshBasicMaterial({ color: 0x44ff66, transparent: true, opacity: 0.06, side: THREE.DoubleSide })
+  ));
+  sunGroup.add(new THREE.Mesh(
+    new THREE.TubeGeometry(earthCurve, 180, 0.12, 6, true),
+    new THREE.MeshBasicMaterial({ color: 0x66ff88, transparent: true, opacity: 0.12, side: THREE.DoubleSide })
+  ));
+  sunGroup.add(new THREE.Mesh(
+    new THREE.TubeGeometry(earthCurve, 180, 0.04, 4, true),
+    new THREE.MeshBasicMaterial({ color: 0xaaffbb, transparent: true, opacity: 0.35 })
+  ));
 }
+
+// === PHASE 1: SOLAR SYSTEM POLISH ===
 
 // Asteroid belt between Mars and Jupiter
 const ASTEROID_COUNT = 4000;
@@ -495,7 +467,6 @@ const dwarfPlanets = dwarfPlanetDefs.map((def) => {
   hitSphere.position.x = def.orbit;
   pivot.add(hitSphere);
 
-  // Thin orbit line
   const oCurve = new THREE.CatmullRomCurve3(
     Array.from({ length: 91 }, (_, i) => {
       const ang = (i / 90) * Math.PI * 2;
@@ -600,21 +571,4 @@ const comets = [];
   comets.push({ grp, head, coma, ionTail, ionArr, ionCol, ionGeo, dustTail, dustArr, dustCol: dustCol2, dustGeo, peri: cd.peri, aph: cd.aph, angle: cd.angle, spd: cd.spd });
 });
 
-export {
-  solarSystem,
-  sunPivot,
-  sunGroup,
-  sunCore,
-  sunHit,
-  planets,
-  dwarfPlanets,
-  planetDefs,
-  dwarfPlanetDefs,
-  asteroidBelt,
-  kuiperBelt,
-  comets,
-  coronaLayers,
-  coronaMeshes,
-  solarFlares,
-  allMoonSystems,
-};
+export { solarSystem, sunPivot, sunGroup, sunCore, sunHit, planets, dwarfPlanets, planetDefs, dwarfPlanetDefs, asteroidBelt, kuiperBelt, comets, coronaLayers, coronaMeshes, solarFlares, allMoonSystems, updateMoonVisibility };

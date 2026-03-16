@@ -1,15 +1,8 @@
-# Dependencies
 node_modules/
-
-# OS
 .DS_Store
-Thumbs.db
-
-# Editor
-.vscode/
-.idea/
-*.swp
-*.swo
-
-# Local secrets
-.push-token.env
+*.log
+.env
+serve.py
+UniverseSimulator/
+UniverseSimulator-site/
+/main.js
