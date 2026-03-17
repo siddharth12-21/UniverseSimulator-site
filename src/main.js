@@ -23,7 +23,7 @@ import { superclusterGroup, greatAttractorGlow, cosmicGroup, cosmicSprites, cosm
 import { planetFacts, cosmicFacts, objectStats, travelTimes } from './data/facts.js';
 
 // UI
-import { showInfoPanel, hideInfoPanel, buildSearchIndex, timeSpeed, simTime, setTimeSpeed, setSimTime, updateTimeDisplay, updateScaleIndicator, initAudio, updateAudio, startTour, stopTour, tourStops } from './ui/ui.js';
+import { showInfoPanel, hideInfoPanel, buildSearchIndex, setUIFocusHandler, timeSpeed, simTime, setTimeSpeed, setSimTime, updateTimeDisplay, updateScaleIndicator, initAudio, updateAudio, startTour, stopTour, tourStops } from './ui/ui.js';
 
 // ============================================================
 // INITIALIZATION
@@ -175,6 +175,16 @@ container.addEventListener('pointerup', (e) => {
 
 // Return to Earth button
 const returnBtn = document.getElementById('return-btn');
+setUIFocusHandler((mesh, size, opts = {}) => {
+  focusTarget = mesh;
+  focusSize = size;
+  flyingIn = true;
+  flyingToCenter = false;
+  controls.autoRotate = false;
+  controls.minDistance = opts.minDistance || Math.max(size * 0.5, 0.5);
+  returnBtn.style.display = opts.showReturn ? 'block' : 'none';
+  updateMoonVisibility(focusTarget);
+});
 returnBtn.addEventListener('click', () => {
   focusTarget = earth;
   focusSize = 1.0;

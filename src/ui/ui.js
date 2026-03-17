@@ -52,6 +52,11 @@ function hideInfoPanel() {
 const searchInput = document.getElementById('search-input');
 const searchResults = document.getElementById('search-results');
 const allSearchableObjects = [];
+let focusHandler = null;
+
+export function setUIFocusHandler(handler) {
+  focusHandler = handler;
+}
 
 function buildSearchIndex(hitTargets, cosmicSprites) {
   hitTargets.forEach(h => {
@@ -73,13 +78,9 @@ searchInput.addEventListener('input', () => {
     div.className = 'search-result-item';
     div.textContent = m.name;
     div.addEventListener('click', () => {
-      focusTarget = m.mesh;
-      focusSize = m.size;
-      flyingIn = true;
-      flyingToCenter = false;
-      controls.autoRotate = false;
-      controls.minDistance = m.size * 0.5;
-      returnBtn.style.display = 'block';
+      if (focusHandler) {
+        focusHandler(m.mesh, m.size, { minDistance: m.size * 0.5, showReturn: true });
+      }
       showInfoPanel(m.name);
       searchResults.style.display = 'none';
       searchInput.value = '';
@@ -138,7 +139,7 @@ document.getElementById('time-slower').addEventListener('click', () => {
 // === SCALE INDICATOR ===
 const scaleBar = document.getElementById('scale-bar');
 const scaleLabelEl = document.getElementById('scale-label');
-const container = document.getElementById('container');
+const container = document.getElementById('canvas-container');
 
 function updateScaleIndicator() {
   const camDist = camera.position.length();
@@ -155,7 +156,7 @@ function updateScaleIndicator() {
   scaleLabelEl.textContent = label;
   const fov = camera.fov * Math.PI / 180;
   const viewWidth = 2 * camDist * Math.tan(fov / 2) * camera.aspect;
-  const pixPerUnit = container.clientWidth / viewWidth;
+  const pixPerUnit = (container ? container.clientWidth : window.innerWidth) / viewWidth;
   const barPx = Math.max(30, Math.min(200, barUnits * pixPerUnit));
   scaleBar.style.width = barPx + 'px';
 }
@@ -328,12 +329,9 @@ function playTourStop() {
   const stop = tourStops[tourIndex];
   const obj = allSearchableObjects.find(o => o.name === stop.target);
   if (obj) {
-    focusTarget = obj.mesh;
-    focusSize = obj.size;
-    flyingIn = true;
-    flyingToCenter = false;
-    controls.autoRotate = false;
-    controls.minDistance = obj.size * 0.5;
+    if (focusHandler) {
+      focusHandler(obj.mesh, obj.size, { minDistance: obj.size * 0.5, showReturn: true });
+    }
     showInfoPanel(obj.name);
   }
   tourNarration.textContent = stop.narration;
