@@ -14,16 +14,16 @@ import { stars, dustGroup } from './objects/starfield.js';
 import { solarSystem, sunPivot, sunGroup, sunCore, sunHit, planets, dwarfPlanets, planetDefs, dwarfPlanetDefs, asteroidBelt, kuiperBelt, comets, coronaLayers, coronaMeshes, solarFlares, allMoonSystems, updateMoonVisibility } from './solar/solarSystem.js';
 
 // Galaxy
-import { stellarGroup, stellarPoints, nearbyStarData, starSprites, galaxyGroup, galaxyPoints, GALAXY_OFFSET, accretion, accInner, acc2, acc3, photonRing, photonRing2, accretionMat, accDiskTex, accInnerTex, photonRingMat, photonRing2Mat, bhGlow, mwLabelSprite, nebulaDefs, nebulaSprites, galaxyDefs, localGroupGroup, galaxySprites, mwLocalSprite, constellationGroup } from './galaxy/galaxy.js';
+import { stellarGroup, stellarPoints, nearbyStarData, starSprites, galaxyGroup, galaxyPoints, GALAXY_OFFSET, accretion, accInner, acc2, acc3, photonRing, photonRing2, accretionMat, accDiskTex, accInnerTex, photonRingMat, photonRing2Mat, bhGlow, mwLabelSprite, nebulaDefs, nebulaSprites, galaxyDefs, localGroupGroup, galaxySprites, mwLocalSprite, constellationGroup, goldHazeGroup, milkyWayGoldWash, milkyWayGoldCore } from './galaxy/galaxy.js';
 
 // Cosmic
-import { superclusterGroup, greatAttractorGlow, cosmicGroup, cosmicSprites, cosmicPoints, piscesCetus } from './cosmic/cosmic.js';
+import { superclusterGroup, greatAttractorGlow, cosmicGroup, cosmicSprites, cosmicPoints, piscesCetus, transitionFilamentGroup, heroFilamentSegments, wallLabelsData } from './cosmic/cosmic.js';
 
 // Data
 import { planetFacts, cosmicFacts, objectStats, travelTimes } from './data/facts.js';
 
 // UI
-import { showInfoPanel, hideInfoPanel, buildSearchIndex, setUIFocusHandler, timeSpeed, simTime, setTimeSpeed, setSimTime, updateTimeDisplay, updateScaleIndicator, initAudio, updateAudio, startTour, stopTour, tourStops } from './ui/ui.js';
+import { showInfoPanel, hideInfoPanel, buildSearchIndex, setUIFocusHandler, timeSpeed, simTime, setTimeSpeed, setSimTime, updateTimeDisplay, updateScaleIndicator, initAudio, updateAudio } from './ui/ui.js';
 
 // ============================================================
 // INITIALIZATION
@@ -36,7 +36,7 @@ const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
 controls.dampingFactor = 0.05;
 controls.minDistance = 0.5;
-controls.maxDistance = 40000000;
+controls.maxDistance = 100000000;
 controls.autoRotate = true;
 controls.autoRotateSpeed = 0.5;
 
@@ -71,6 +71,28 @@ function projectToScreen(obj) {
     y: (-pos.y * 0.5 + 0.5) * container.clientHeight,
     z: pos.z,
   };
+}
+
+// Permanent HTML labels for galaxy walls (tooltip style, purple, always visible)
+const wallLabelEls = wallLabelsData.map(w => {
+  const el = document.createElement('div');
+  el.className = 'wall-label';
+  el.textContent = w.name;
+  el.style.opacity = '0';
+  document.body.appendChild(el);
+  return { el, pos: w.pos };
+});
+
+function updateWallLabels(scVis) {
+  const projVec = new THREE.Vector3();
+  wallLabelEls.forEach(({ el, pos }) => {
+    if (scVis < 0.01) { el.style.opacity = '0'; return; }
+    projVec.copy(pos).project(camera);
+    if (projVec.z > 1) { el.style.opacity = '0'; return; }
+    el.style.left = ((projVec.x * 0.5 + 0.5) * container.clientWidth) + 'px';
+    el.style.top = ((-projVec.y * 0.5 + 0.5) * container.clientHeight) + 'px';
+    el.style.opacity = String(Math.min(scVis, 1));
+  });
 }
 
 container.addEventListener('pointermove', (e) => {
@@ -300,7 +322,7 @@ function getScaleLabel() {
   if (mapViewRadius < 30000) return 'Stellar Neighborhood';
   if (mapViewRadius < 1000000) return 'Milky Way Galaxy';
   if (mapViewRadius < 5000000) return 'Local Group';
-  if (mapViewRadius < 40000000) return 'Superclusters';
+  if (mapViewRadius < 60000000) return 'Superclusters';
   return 'Observable Universe';
 }
 
@@ -545,12 +567,6 @@ mapCanvas.addEventListener('click', (e) => {
 populateCosmicMapObjects();
 buildSearchIndex(hitTargets, cosmicSprites);
 
-// Tour button
-const tourBtn = document.getElementById('tour-btn');
-tourBtn.addEventListener('click', () => {
-  if (tourBtn.textContent === 'Stop Tour') stopTour(); else startTour();
-});
-
 // ============================================================
 // LIGHT TRAVEL VISUALIZATION
 // ============================================================
@@ -639,8 +655,8 @@ function getAncestorGroup(obj) {
 
 function updateScaleLayers() {
   const camDist = camera.position.length();
-  const flyGroup = flyingIn ? getAncestorGroup(focusTarget) : null;
-  const isFly = (g) => flyGroup === g;
+  const focusGroup = getAncestorGroup(focusTarget);
+  const isFly = (g) => focusGroup === g;
 
   const solarAlpha = 1 - smoothStep(300, 3000, camDist);
   const solarVis = isFly(solarSystem) ? Math.max(solarAlpha, 0.3) : solarAlpha;
@@ -661,6 +677,14 @@ function updateScaleLayers() {
   const mwAlpha = mwIn * mwOut;
   galaxyGroup.visible = mwAlpha > 0.001 || isFly(galaxyGroup);
   galaxyPoints.material.opacity = Math.max(mwAlpha * 0.7, isFly(galaxyGroup) ? 0.3 : 0);
+  // Phase 1-2: Golden haze. Ramps in when zoomed past galaxy detail,
+  // stays strong through mid-range so the giant sprite fills -> band -> filament.
+  const goldIn = smoothStep(320000, 600000, camDist);
+  const goldOut = 1 - smoothStep(4000000, 10000000, camDist);
+  const goldDrownAlpha = goldIn * goldOut;
+  goldHazeGroup.visible = goldDrownAlpha > 0.001;
+  milkyWayGoldWash.material.opacity = Math.max(0, goldDrownAlpha * 0.7);
+  milkyWayGoldCore.material.opacity = Math.max(0, goldDrownAlpha * 0.5);
 
   const lgIn = smoothStep(500000, 1500000, camDist);
   const lgOut = 1 - smoothStep(2000000, 4000000, camDist);
@@ -672,14 +696,46 @@ function updateScaleLayers() {
     c.material.opacity = c.material._baseOpacity * Math.max(lgAlpha, isFly(localGroupGroup) ? 0.3 : 0);
   });
 
-  const scIn = smoothStep(3000000, 8000000, camDist);
-  const scOut = 1 - smoothStep(20000000, 40000000, camDist);
-  const scAlpha = scIn * scOut;
-  superclusterGroup.visible = scAlpha > 0.001 || isFly(superclusterGroup);
+  // Phase 2-3: Hero filament thins progressively — glow dies first, then mid,
+  // then core, while a thin tube (r ≈ 12k, matching supercluster streamlines)
+  // crossfades in. Superclusters only appear once only the thin tube remains.
+  const filBaseIn = smoothStep(1200000, 3000000, camDist);
+  const filamentLength = smoothStep(1200000, 2500000, camDist);
+  const glowFade = 1 - smoothStep(6000000, 14000000, camDist);
+  const midFade  = 1 - smoothStep(10000000, 20000000, camDist);
+  const coreFade = 1 - smoothStep(14000000, 24000000, camDist);
+  const thinIn   = smoothStep(10000000, 20000000, camDist);
+  const thinOut  = 1 - smoothStep(30000000, 42000000, camDist);
+  const thinAlpha = thinIn * thinOut;
 
-  const cwIn = smoothStep(5000000, 12000000, camDist);
-  cosmicGroup.visible = cwIn > 0.001 || isFly(cosmicGroup);
-  cosmicPoints.material.opacity = Math.max(cwIn * 0.45, isFly(cosmicGroup) ? 0.3 : 0);
+  const anyVis = filBaseIn * Math.max(glowFade, midFade, coreFade, thinAlpha);
+  transitionFilamentGroup.visible = anyVis > 0.002 || isFly(superclusterGroup);
+  heroFilamentSegments.forEach(seg => {
+    const segOn = Math.max(0, Math.min(1, (filamentLength - seg.t0) / Math.max(0.0001, (seg.t1 - seg.t0))));
+    seg.glow.material.opacity = 0.05 * filBaseIn * glowFade * segOn;
+    seg.mid.material.opacity  = 0.09 * filBaseIn * midFade  * segOn;
+    seg.core.material.opacity = 0.18 * filBaseIn * coreFade * segOn;
+    seg.thin.material.opacity = 0.12 * filBaseIn * thinAlpha * segOn;
+  });
+
+  // Phase 4: Superclusters fade in once the hero tube has thinned to
+  // match supercluster streamline thickness (core gone at ~24M).
+  const scIn = smoothStep(24000000, 28000000, camDist);
+  const scOut = 1 - smoothStep(85000000, 100000000, camDist);
+  const scAlpha = scIn * scOut;
+  const scVis = Math.max(scAlpha, isFly(superclusterGroup) ? 1 : 0);
+  superclusterGroup.visible = scVis > 0.001;
+  superclusterGroup.traverse(child => {
+    if (!child.material) return;
+    if (child.material._baseOpacity === undefined) child.material._baseOpacity = child.material.opacity;
+    child.material.opacity = child.material._baseOpacity * scVis;
+  });
+  updateWallLabels(scVis);
+
+  const cwIn = smoothStep(20000000, 28000000, camDist);
+  const cwVis = Math.max(cwIn, isFly(cosmicGroup) ? 1 : 0);
+  cosmicGroup.visible = cwVis > 0.001;
+  cosmicPoints.material.opacity = 0.45 * cwVis;
 }
 
 // ============================================================

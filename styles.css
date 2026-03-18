@@ -524,3 +524,21 @@ html, body {
   text-shadow: 0 0 6px #ff8c00, 0 0 14px rgba(255, 140, 0, 0.5);
   border: 1px solid rgba(255, 140, 0, 0.25);
 }
+
+.wall-label {
+  position: fixed;
+  pointer-events: none;
+  padding: 6px 14px;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.75);
+  color: #bb77ff;
+  font: 700 15px/1.4 'Orbitron', sans-serif;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  white-space: nowrap;
+  z-index: 19;
+  transform: translateX(-50%);
+  text-shadow: 0 0 6px #bb77ff, 0 0 14px rgba(187, 119, 255, 0.5);
+  border: 1px solid rgba(187, 119, 255, 0.25);
+  transition: opacity 0.3s;
+}

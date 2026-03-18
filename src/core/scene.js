@@ -5,7 +5,7 @@ import { UnrealBloomPass } from 'https://esm.sh/three@0.160.0/examples/jsm/postp
 
 const container = document.getElementById('canvas-container');
 const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.01, 50000000);
+const camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.01, 200000000);
 camera.position.set(0, 1.5, 4);
 
 const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, logarithmicDepthBuffer: true });

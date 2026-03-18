@@ -86,6 +86,42 @@ scene.add(galaxyGroup);
 
 const GALAXY_OFFSET = new THREE.Vector3(50000, 2000, -30000);
 
+// Broad gold-haze texture: stays bright across most of its area for full-screen drowning
+const goldHazeTex = (() => {
+  const c = document.createElement('canvas'); c.width = 256; c.height = 256;
+  const ctx = c.getContext('2d');
+  const g = ctx.createRadialGradient(128, 128, 0, 128, 128, 128);
+  g.addColorStop(0, 'rgba(255,255,255,1)');
+  g.addColorStop(0.3, 'rgba(255,255,255,0.92)');
+  g.addColorStop(0.55, 'rgba(255,255,255,0.7)');
+  g.addColorStop(0.75, 'rgba(255,255,255,0.35)');
+  g.addColorStop(0.9, 'rgba(255,255,255,0.1)');
+  g.addColorStop(1, 'rgba(255,255,255,0)');
+  ctx.fillStyle = g; ctx.fillRect(0, 0, 256, 256);
+  return new THREE.CanvasTexture(c);
+})();
+
+// Golden wash overlays used during MW -> supercluster transition.
+// Lives in its own group (not galaxyGroup) so it stays visible after MW fades.
+// Sized so the sprite fills the entire screen at close range, then naturally
+// shrinks to a band shape and then a thin filament as the camera pulls back.
+const goldHazeGroup = new THREE.Group();
+scene.add(goldHazeGroup);
+
+const milkyWayGoldWash = new THREE.Sprite(new THREE.SpriteMaterial({
+  map: goldHazeTex, color: 0xffc861, transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending,
+}));
+milkyWayGoldWash.position.copy(GALAXY_OFFSET);
+milkyWayGoldWash.scale.set(2400000, 1200000, 1);
+goldHazeGroup.add(milkyWayGoldWash);
+
+const milkyWayGoldCore = new THREE.Sprite(new THREE.SpriteMaterial({
+  map: goldHazeTex, color: 0xffe08a, transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending,
+}));
+milkyWayGoldCore.position.copy(GALAXY_OFFSET);
+milkyWayGoldCore.scale.set(1400000, 700000, 1);
+goldHazeGroup.add(milkyWayGoldCore);
+
 // Galaxy stars: smooth blending spiral with heavy inter-arm fill
 const GALAXY_STARS_N = 300000;
 const galPos = new Float32Array(GALAXY_STARS_N * 3);
@@ -805,8 +841,20 @@ constellations.forEach(cd => {
   cd.lines.forEach(([a, b]) => {
     const geo = new THREE.BufferGeometry().setFromPoints([pts[a], pts[b]]);
     constellationGroup.add(new THREE.Line(geo, new THREE.LineBasicMaterial({
-      color: 0x4488ff, transparent: true, opacity: 0.3, depthWrite: false,
+      color: 0x3b8cff, transparent: true, opacity: 0.22, depthWrite: false, blending: THREE.AdditiveBlending,
     })));
+    constellationGroup.add(new THREE.Line(geo, new THREE.LineBasicMaterial({
+      color: 0x8ed2ff, transparent: true, opacity: 0.82, depthWrite: false, blending: THREE.AdditiveBlending,
+    })));
+
+    // Mid-segment glow node to make lines feel luminous
+    const mid = pts[a].clone().lerp(pts[b], 0.5);
+    const glow = new THREE.Sprite(new THREE.SpriteMaterial({
+      map: nebulaGlowTex, color: 0x5fb8ff, transparent: true, opacity: 0.22, depthWrite: false, blending: THREE.AdditiveBlending,
+    }));
+    glow.position.copy(mid);
+    glow.scale.setScalar(70);
+    constellationGroup.add(glow);
   });
   // Small label at first star
   const labelCanvas = document.createElement('canvas');
@@ -831,5 +879,5 @@ export {
   bhGlow, mwLabelSprite,
   nebulaDefs, nebulaSprites, makeNebulaTex,
   galaxyDefs, localGroupGroup, galaxySprites, mwLocalSprite,
-  constellationGroup
+  constellationGroup, goldHazeGroup, milkyWayGoldWash, milkyWayGoldCore
 };

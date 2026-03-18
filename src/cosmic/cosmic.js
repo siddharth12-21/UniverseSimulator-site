@@ -406,6 +406,56 @@ allSuperclusters.forEach(sc => {
   webGroup.add(result.group);
 });
 
+// Transitional single-filament reveal (appears before full supercluster web)
+const transitionFilamentGroup = new THREE.Group();
+transitionFilamentGroup.visible = false;
+scene.add(transitionFilamentGroup);
+// Anchor starts right at the Milky Way so the tube encases the gold haze
+const heroStart = GALAXY_OFFSET.clone();
+const heroEnd = allClusterCenters[0] ? allClusterCenters[0].clone() : LAN_CENTER.clone().add(new THREE.Vector3(-2500000, 300000, 3200000));
+const heroMid = heroStart.clone().lerp(heroEnd, 0.5).add(new THREE.Vector3(-1400000, 250000, 1200000));
+const heroCurve = new THREE.CatmullRomCurve3([heroStart, heroMid, heroEnd]);
+const heroFilamentSegments = [];
+const HERO_SEGMENTS = 12;
+for (let i = 0; i < HERO_SEGMENTS; i++) {
+  const t0 = i / HERO_SEGMENTS;
+  const t1 = (i + 1) / HERO_SEGMENTS;
+  const p0 = heroCurve.getPointAt(t0);
+  const p1 = heroCurve.getPointAt((t0 + t1) * 0.5);
+  const p2 = heroCurve.getPointAt(t1);
+  const segCurve = new THREE.CatmullRomCurve3([p0, p1, p2]);
+
+  const glow = new THREE.Mesh(
+    new THREE.TubeGeometry(segCurve, 32, 600000, 8, false),
+    new THREE.MeshBasicMaterial({
+      color: 0xffcc66, transparent: true, opacity: 0.0, depthWrite: false, blending: THREE.AdditiveBlending,
+    })
+  );
+  const mid = new THREE.Mesh(
+    new THREE.TubeGeometry(segCurve, 32, 300000, 8, false),
+    new THREE.MeshBasicMaterial({
+      color: 0xffd980, transparent: true, opacity: 0.0, depthWrite: false, blending: THREE.AdditiveBlending,
+    })
+  );
+  const core = new THREE.Mesh(
+    new THREE.TubeGeometry(segCurve, 32, 120000, 8, false),
+    new THREE.MeshBasicMaterial({
+      color: 0xffefb0, transparent: true, opacity: 0.0, depthWrite: false, blending: THREE.AdditiveBlending,
+    })
+  );
+  const thin = new THREE.Mesh(
+    new THREE.TubeGeometry(segCurve, 32, 12000, 4, false),
+    new THREE.MeshBasicMaterial({
+      color: 0xffdd88, transparent: true, opacity: 0.0, depthWrite: false, blending: THREE.AdditiveBlending,
+    })
+  );
+  transitionFilamentGroup.add(glow);
+  transitionFilamentGroup.add(mid);
+  transitionFilamentGroup.add(core);
+  transitionFilamentGroup.add(thin);
+  heroFilamentSegments.push({ glow, mid, core, thin, t0, t1 });
+}
+
 // Dense filamentary bridges between ALL nearby superclusters
 const webBridgeTint = [1.0, 0.85, 0.4];
 const WEB_BRIDGE_DIST = 14000000;
@@ -458,6 +508,173 @@ allSuperclusters.forEach((sc, idx) => {
   webGroup.add(sp);
   allClusterSprites.push(sp);
 });
+
+// === Large-Scale Cosmic Walls ===
+// Distinct galaxy wall sheets separated by dark voids.
+
+function makeLightCluster(center, radius, particleN, tint) {
+  const group = new THREE.Group();
+  const pPos = new Float32Array(particleN * 3);
+  const pCol = new Float32Array(particleN * 3);
+  for (let i = 0; i < particleN; i++) {
+    const th = Math.random() * Math.PI * 2;
+    const ph = Math.acos(2 * Math.random() - 1);
+    const r = radius * Math.pow(Math.random(), 0.4);
+    pPos[i*3]   = center.x + r * Math.sin(ph) * Math.cos(th);
+    pPos[i*3+1] = center.y + r * Math.sin(ph) * Math.sin(th) * 0.35;
+    pPos[i*3+2] = center.z + r * Math.cos(ph);
+    const b = 0.3 + Math.random() * 0.7;
+    pCol[i*3] = tint[0]*b; pCol[i*3+1] = tint[1]*b; pCol[i*3+2] = tint[2]*b;
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.BufferAttribute(pPos, 3));
+  geo.setAttribute('color', new THREE.BufferAttribute(pCol, 3));
+  group.add(new THREE.Points(geo, new THREE.PointsMaterial({
+    map: circleTex, size: 20000, sizeAttenuation: true, vertexColors: true,
+    transparent: true, opacity: 0.6, depthWrite: false, blending: THREE.AdditiveBlending,
+  })));
+  const sp1 = new THREE.Sprite(new THREE.SpriteMaterial({
+    map: nebulaGlowTex, color: new THREE.Color(tint[0], tint[1] * 0.9, tint[2] * 0.6),
+    transparent: true, opacity: 0.22, depthWrite: false, blending: THREE.AdditiveBlending,
+  }));
+  sp1.position.copy(center);
+  sp1.scale.setScalar(radius * 0.8);
+  group.add(sp1);
+  const sp2 = new THREE.Sprite(new THREE.SpriteMaterial({
+    map: nebulaGlowTex, color: new THREE.Color(tint[0] * 0.8, tint[1] * 0.7, tint[2] * 0.5),
+    transparent: true, opacity: 0.07, depthWrite: false, blending: THREE.AdditiveBlending,
+  }));
+  sp2.position.copy(center);
+  sp2.scale.setScalar(radius * 2.5);
+  group.add(sp2);
+  return { group };
+}
+
+const wallTints = [
+  [1.0, 0.85, 0.38], [0.95, 0.82, 0.42], [1.0, 0.80, 0.35],
+  [0.92, 0.86, 0.45], [0.98, 0.84, 0.40], [1.0, 0.90, 0.36],
+];
+
+const wallDefs = [
+  { c: [0, 0, 0],                            n: [0, 1, 0.1],      spread: 55000000, thick: 3000000, count: 65, name: 'CfA2 Great Wall' },
+  { c: [-22000000, 15000000, 20000000],       n: [0.3, 1, -0.2],   spread: 50000000, thick: 3500000, count: 55, name: 'Sloan Great Wall' },
+  { c: [30000000, -6000000, -24000000],       n: [1, 0.15, 0.3],   spread: 45000000, thick: 3000000, count: 50, name: 'Hercules-Corona Borealis Wall' },
+  { c: [6000000, -22000000, 14000000],        n: [-0.15, 1, 0.25], spread: 40000000, thick: 2500000, count: 45, name: 'Southern Wall' },
+  { c: [-34000000, 10000000, -30000000],      n: [0.4, 0.8, -0.3], spread: 38000000, thick: 3000000, count: 40, name: 'Boss Great Wall' },
+  { c: [40000000, 18000000, 10000000],        n: [-0.2, 1, 0.5],   spread: 35000000, thick: 2800000, count: 35, name: 'Pisces-Cetus Wall' },
+];
+
+const wallCenters = [];
+
+wallDefs.forEach(wall => {
+  const ctr = new THREE.Vector3(wall.c[0], wall.c[1], wall.c[2]);
+  const norm = new THREE.Vector3(wall.n[0], wall.n[1], wall.n[2]).normalize();
+  const ref = Math.abs(norm.y) < 0.9 ? new THREE.Vector3(0, 1, 0) : new THREE.Vector3(1, 0, 0);
+  const uAxis = new THREE.Vector3().crossVectors(norm, ref).normalize();
+  const vAxis = new THREE.Vector3().crossVectors(norm, uAxis).normalize();
+
+  const wallPositions = [];
+  let placed = 0, tries = 0;
+  while (placed < wall.count && tries < wall.count * 120) {
+    tries++;
+    const pu = (Math.random() - 0.5) * 2 * wall.spread;
+    const pv = (Math.random() - 0.5) * 2 * wall.spread;
+    const pn = (Math.random() - 0.5) * 2 * wall.thick;
+    const pos = ctr.clone()
+      .addScaledVector(uAxis, pu)
+      .addScaledVector(vAxis, pv)
+      .addScaledVector(norm, pn);
+
+    if (allClusterCenters.some(cc => cc.distanceTo(pos) < 3500000)) continue;
+    if (wallCenters.some(cc => cc.distanceTo(pos) < 3500000)) continue;
+
+    wallCenters.push(pos);
+    wallPositions.push(pos);
+    const r = 1500000 + Math.random() * 2500000;
+    const tint = wallTints[Math.floor(Math.random() * wallTints.length)];
+    webGroup.add(makeLightCluster(pos, r, 1200 + Math.floor(Math.random() * 1200), tint).group);
+
+    // Purple glow label (same style as supercluster tooltips, but purple)
+    const lbl = new THREE.Sprite(new THREE.SpriteMaterial({
+      map: nebulaGlowTex, color: 0xbb77ff,
+      transparent: true, opacity: 0.18, depthWrite: false, blending: THREE.AdditiveBlending,
+    }));
+    lbl.position.copy(pos);
+    lbl.scale.setScalar(r * 0.5);
+    lbl.userData.name = wall.name;
+    lbl.userData.flyDist = r * 2;
+    webGroup.add(lbl);
+    allClusterSprites.push(lbl);
+    placed++;
+  }
+
+  // Large diffuse purple glow patches along the wall plane
+  const GLOW_PER_WALL = 10;
+  for (let g = 0; g < GLOW_PER_WALL; g++) {
+    const pu = (Math.random() - 0.5) * 1.6 * wall.spread;
+    const pv = (Math.random() - 0.5) * 1.6 * wall.spread;
+    const gpos = ctr.clone()
+      .addScaledVector(uAxis, pu)
+      .addScaledVector(vAxis, pv);
+    const gsp = new THREE.Sprite(new THREE.SpriteMaterial({
+      map: nebulaGlowTex, color: 0x9966cc,
+      transparent: true, opacity: 0.025, depthWrite: false, blending: THREE.AdditiveBlending,
+    }));
+    gsp.position.copy(gpos);
+    gsp.scale.setScalar(25000000 + Math.random() * 15000000);
+    webGroup.add(gsp);
+  }
+});
+
+const wallLabelsData = wallDefs.map(w => ({
+  name: w.name,
+  pos: new THREE.Vector3(w.c[0], w.c[1], w.c[2]),
+}));
+
+// Batched wall bridge particles (single draw call for all bridges)
+const wallBridgePairs = [];
+const W_BRIDGE = 16000000;
+for (let i = 0; i < wallCenters.length; i++) {
+  for (let j = 0; j < allClusterCenters.length; j++) {
+    const d = wallCenters[i].distanceTo(allClusterCenters[j]);
+    if (d < W_BRIDGE) wallBridgePairs.push([wallCenters[i], allClusterCenters[j], d]);
+  }
+  for (let j = i + 1; j < wallCenters.length; j++) {
+    const d = wallCenters[i].distanceTo(wallCenters[j]);
+    if (d < W_BRIDGE) wallBridgePairs.push([wallCenters[i], wallCenters[j], d]);
+  }
+}
+const wbTotal = wallBridgePairs.reduce((s, bp) => s + Math.floor(300 + 800 * (1 - bp[2] / W_BRIDGE)), 0);
+if (wbTotal > 0) {
+  const wbPos = new Float32Array(wbTotal * 3);
+  const wbCol = new Float32Array(wbTotal * 3);
+  let wbI = 0;
+  wallBridgePairs.forEach(([a, b, d]) => {
+    const n = Math.floor(300 + 800 * (1 - d / W_BRIDGE));
+    const mid = a.clone().lerp(b, 0.5).add(new THREE.Vector3(
+      (Math.random() - 0.5) * d * 0.2, (Math.random() - 0.5) * d * 0.05, (Math.random() - 0.5) * d * 0.2
+    ));
+    const curve = new THREE.CatmullRomCurve3([a, mid, b]);
+    for (let i = 0; i < n; i++) {
+      const t = Math.random();
+      const pt = curve.getPointAt(t);
+      const spread = d * 0.04;
+      wbPos[wbI * 3]     = pt.x + (Math.random() - 0.5) * spread;
+      wbPos[wbI * 3 + 1] = pt.y + (Math.random() - 0.5) * spread * 0.25;
+      wbPos[wbI * 3 + 2] = pt.z + (Math.random() - 0.5) * spread;
+      const fb = 0.2 + Math.random() * 0.4;
+      wbCol[wbI * 3] = 0.95 * fb; wbCol[wbI * 3 + 1] = 0.82 * fb; wbCol[wbI * 3 + 2] = 0.38 * fb;
+      wbI++;
+    }
+  });
+  const wbGeo = new THREE.BufferGeometry();
+  wbGeo.setAttribute('position', new THREE.BufferAttribute(wbPos, 3));
+  wbGeo.setAttribute('color', new THREE.BufferAttribute(wbCol, 3));
+  webGroup.add(new THREE.Points(wbGeo, new THREE.PointsMaterial({
+    map: circleTex, size: 6000, sizeAttenuation: true, vertexColors: true,
+    transparent: true, opacity: 0.25, depthWrite: false, blending: THREE.AdditiveBlending,
+  })));
+}
 
 const piscesCetus = { group: webGroup, sprites: allClusterSprites, center: webCenter };
 
@@ -540,13 +757,13 @@ for (let y = 0; y < 512; y++) {
 }
 cmbCtx.putImageData(cmbImgData, 0, 0);
 const cmbTex = new THREE.CanvasTexture(cmbCanvas);
-const cmbGeo = new THREE.SphereGeometry(5000000, 64, 64);
+const cmbGeo = new THREE.SphereGeometry(110000000, 64, 64);
 const cmbMat = new THREE.MeshBasicMaterial({
   map: cmbTex, transparent: true, opacity: 0.15, side: THREE.BackSide, depthWrite: false,
 });
 cosmicGroup.add(new THREE.Mesh(cmbGeo, cmbMat));
 const cmbGlow = new THREE.Mesh(
-  new THREE.SphereGeometry(4800000, 32, 32),
+  new THREE.SphereGeometry(108000000, 32, 32),
   new THREE.MeshBasicMaterial({ color: 0x554422, transparent: true, opacity: 0.04, side: THREE.BackSide, depthWrite: false })
 );
 cosmicGroup.add(cmbGlow);
@@ -554,4 +771,4 @@ cosmicGroup.add(cmbGlow);
 // Populate cosmic sprite array for interaction
 const cosmicSprites = [...starSprites, bhGlow, mwLabelSprite, ...nebulaSprites, ...galaxySprites, mwLocalSprite, greatAttractorGlow, ...piscesCetus.sprites];
 
-export { superclusterGroup, lanGroup, LAN_CENTER, greatAttractorGlow, makeStreamCluster, makeFilamentBridge, piscesCetus, cosmicGroup, cosmicSprites, cosmicPoints, make3DLabel };
+export { superclusterGroup, lanGroup, LAN_CENTER, greatAttractorGlow, makeStreamCluster, makeFilamentBridge, piscesCetus, cosmicGroup, cosmicSprites, cosmicPoints, make3DLabel, transitionFilamentGroup, heroFilamentSegments, wallLabelsData };

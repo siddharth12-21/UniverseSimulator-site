@@ -303,7 +303,7 @@ const tourStops = [
   { target: 'Orion Nebula', narration: 'The Orion Nebula — a stellar nursery where new stars are being born.', duration: 5000 },
   { target: 'Milky Way Galaxy', narration: 'The Milky Way — our home galaxy, a barred spiral containing 100-400 billion stars.', duration: 5000 },
   { target: 'Andromeda (M31)', narration: 'Andromeda — the nearest large galaxy, destined to merge with the Milky Way in 4.5 billion years.', duration: 5000 },
-  { target: 'Laniakea Supercluster', narration: 'Laniakea — our home supercluster, 520 million light-years of flowing cosmic rivers.', duration: 6000 },
+  { target: 'Laniakea', narration: 'Laniakea — our home supercluster, 520 million light-years of flowing cosmic rivers.', duration: 6000 },
 ];
 
 let tourActive = false;
