@@ -2,14 +2,20 @@
 
 A 3D interactive universe simulator built with Three.js. Explore from Earth to the cosmic web—zoom from our solar system to nearby stars, the Milky Way galaxy, local group, superclusters, and the observable universe.
 
+## Live Site
+
+- [UniverseSimulator Live](https://siddharth12-21.github.io/UniverseSimulator-site/)
+
 ## Features
 
 - **Solar System**: Earth at center, Sun and planets with procedural textures, moons, asteroid belt, Kuiper belt, dwarf planets, and comets
 - **Stellar Neighborhood**: Nearby stars (Alpha Centauri, Sirius, Betelgeuse, etc.)
 - **Milky Way Galaxy**: Spiral arms, Sagittarius A* black hole, nebulae (Orion, Eagle, Crab, etc.)
 - **Local Group**: Andromeda, Triangulum, Magellanic Clouds, and dwarf galaxies
-- **Superclusters**: Laniakea and Pisces-Cetus
-- **Cosmic Web**: Filaments and CMB boundary
+- **Superclusters**: Laniakea and 28 superclusters with streamlines and filament bridges
+- **Galaxy Walls**: 6 distinct large-scale structures (CfA2, Sloan, Hercules-Corona Borealis, Southern, Boss, Pisces-Cetus) with 290+ light clusters, batched bridge particles, and permanent purple labels
+- **Hero Filament**: Transitional filament from Milky Way to superclusters that progressively thins to match streamline thickness before revealing the cosmic web
+- **Cosmic Web**: Filaments, CMB boundary, zoom range up to 100M units
 
 ## Verification
 
@@ -43,10 +49,10 @@ UniverseSimulator/
 ├── README.md
 ├── .gitignore
 └── src/
-    ├── main.js              # Entry point (orchestrates all modules)
-    ├── config.js            # Configuration constants
+    ├── main.js              # Entry point, animation loop, scale layers, map
+    ├── config.js            # Configuration constants (zoom limits, distances)
     ├── core/
-    │   ├── scene.js         # Three.js scene, camera, renderer, circleTex
+    │   ├── scene.js         # Three.js scene, camera, renderer, bloom, textures
     │   └── lighting.js      # Ambient/camera lights, brightness control
     ├── textures/
     │   └── planetTextures.js  # Procedural planet textures & height maps
@@ -55,11 +61,17 @@ UniverseSimulator/
     │   └── earth.js         # Earth globe with clouds
     ├── solar/
     │   └── solarSystem.js   # Sun, planets, moons, belts, comets
-    └── state/
-        └── navigation.js    # Shared focus/camera state
+    ├── galaxy/
+    │   └── galaxy.js       # Milky Way, Local Group, stellar neighborhood, gold haze
+    ├── cosmic/
+    │   └── cosmic.js       # Superclusters, galaxy walls, filaments, cosmic web, CMB
+    ├── data/
+    │   └── facts.js        # Planet/cosmic facts, object stats, travel times
+    ├── state/
+    │   └── navigation.js   # Focus target, flying state
+    └── ui/
+        └── ui.js           # Info panel, search, tour, time controls, scale indicator
 ```
-
-**Note:** Extracted modules (`core/`, `textures/`, `objects/`, `solar/`, `state/`) provide a clean separation of concerns. `main.js` is the working entry point; the modules serve as reference implementations and can be wired in for a fully modular build.
 
 ## Tech Stack
 

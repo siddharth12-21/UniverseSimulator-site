@@ -601,7 +601,6 @@ wallDefs.forEach(wall => {
     }));
     lbl.position.copy(pos);
     lbl.scale.setScalar(r * 0.5);
-    lbl.userData.name = wall.name;
     lbl.userData.flyDist = r * 2;
     webGroup.add(lbl);
     allClusterSprites.push(lbl);

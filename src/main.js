@@ -23,7 +23,7 @@ import { superclusterGroup, greatAttractorGlow, cosmicGroup, cosmicSprites, cosm
 import { planetFacts, cosmicFacts, objectStats, travelTimes } from './data/facts.js';
 
 // UI
-import { showInfoPanel, hideInfoPanel, buildSearchIndex, setUIFocusHandler, timeSpeed, simTime, setTimeSpeed, setSimTime, updateTimeDisplay, updateScaleIndicator, initAudio, updateAudio } from './ui/ui.js';
+import { showInfoPanel, hideInfoPanel, buildSearchIndex, setUIFocusHandler, setWallFocusTarget, timeSpeed, simTime, setTimeSpeed, setSimTime, updateTimeDisplay, updateScaleIndicator, initAudio, updateAudio } from './ui/ui.js';
 
 // ============================================================
 // INITIALIZATION
@@ -73,25 +73,48 @@ function projectToScreen(obj) {
   };
 }
 
-// Permanent HTML labels for galaxy walls (tooltip style, purple, always visible)
+// Permanent HTML labels for galaxy walls (tooltip style, purple, always visible, clickable)
+const wallFocusTarget = new THREE.Object3D();
 const wallLabelEls = wallLabelsData.map(w => {
   const el = document.createElement('div');
   el.className = 'wall-label';
   el.textContent = w.name;
   el.style.opacity = '0';
+  el.style.pointerEvents = 'none';
+  el.addEventListener('click', () => {
+    wallFocusTarget.position.copy(w.pos);
+    focusTarget = wallFocusTarget;
+    focusSize = 8000000;
+    flyingIn = true;
+    flyingToCenter = false;
+    controls.autoRotate = false;
+    returnBtn.style.display = 'block';
+    updateMoonVisibility(focusTarget);
+    showInfoPanel(w.name);
+  });
   document.body.appendChild(el);
-  return { el, pos: w.pos };
+  return { el, pos: w.pos, name: w.name };
 });
 
 function updateWallLabels(scVis) {
   const projVec = new THREE.Vector3();
   wallLabelEls.forEach(({ el, pos }) => {
-    if (scVis < 0.01) { el.style.opacity = '0'; return; }
+    if (scVis < 0.01) {
+      el.style.opacity = '0';
+      el.style.pointerEvents = 'none';
+      return;
+    }
     projVec.copy(pos).project(camera);
-    if (projVec.z > 1) { el.style.opacity = '0'; return; }
+    if (projVec.z > 1) {
+      el.style.opacity = '0';
+      el.style.pointerEvents = 'none';
+      return;
+    }
     el.style.left = ((projVec.x * 0.5 + 0.5) * container.clientWidth) + 'px';
     el.style.top = ((-projVec.y * 0.5 + 0.5) * container.clientHeight) + 'px';
     el.style.opacity = String(Math.min(scVis, 1));
+    el.style.pointerEvents = 'auto';
+    el.style.cursor = 'pointer';
   });
 }
 
@@ -565,7 +588,8 @@ mapCanvas.addEventListener('click', (e) => {
 // ============================================================
 
 populateCosmicMapObjects();
-buildSearchIndex(hitTargets, cosmicSprites);
+setWallFocusTarget(wallFocusTarget);
+buildSearchIndex(hitTargets, cosmicSprites, wallLabelsData);
 
 // ============================================================
 // LIGHT TRAVEL VISUALIZATION
@@ -653,10 +677,14 @@ function getAncestorGroup(obj) {
   return p;
 }
 
+let _scMaterialsCache = [];
+let _scMaterialsCacheChildCount = -1;
+
 function updateScaleLayers() {
   const camDist = camera.position.length();
   const focusGroup = getAncestorGroup(focusTarget);
-  const isFly = (g) => focusGroup === g;
+  const isWallFocus = focusTarget === wallFocusTarget;
+  const isFly = (g) => focusGroup === g || (isWallFocus && (g === superclusterGroup || g === cosmicGroup));
 
   const solarAlpha = 1 - smoothStep(300, 3000, camDist);
   const solarVis = isFly(solarSystem) ? Math.max(solarAlpha, 0.3) : solarAlpha;
@@ -677,14 +705,9 @@ function updateScaleLayers() {
   const mwAlpha = mwIn * mwOut;
   galaxyGroup.visible = mwAlpha > 0.001 || isFly(galaxyGroup);
   galaxyPoints.material.opacity = Math.max(mwAlpha * 0.7, isFly(galaxyGroup) ? 0.3 : 0);
-  // Phase 1-2: Golden haze. Ramps in when zoomed past galaxy detail,
-  // stays strong through mid-range so the giant sprite fills -> band -> filament.
-  const goldIn = smoothStep(320000, 600000, camDist);
-  const goldOut = 1 - smoothStep(4000000, 10000000, camDist);
-  const goldDrownAlpha = goldIn * goldOut;
-  goldHazeGroup.visible = goldDrownAlpha > 0.001;
-  milkyWayGoldWash.material.opacity = Math.max(0, goldDrownAlpha * 0.7);
-  milkyWayGoldCore.material.opacity = Math.max(0, goldDrownAlpha * 0.5);
+  goldHazeGroup.visible = false;
+  milkyWayGoldWash.material.opacity = 0;
+  milkyWayGoldCore.material.opacity = 0;
 
   const lgIn = smoothStep(500000, 1500000, camDist);
   const lgOut = 1 - smoothStep(2000000, 4000000, camDist);
@@ -725,11 +748,23 @@ function updateScaleLayers() {
   const scAlpha = scIn * scOut;
   const scVis = Math.max(scAlpha, isFly(superclusterGroup) ? 1 : 0);
   superclusterGroup.visible = scVis > 0.001;
-  superclusterGroup.traverse(child => {
-    if (!child.material) return;
-    if (child.material._baseOpacity === undefined) child.material._baseOpacity = child.material.opacity;
-    child.material.opacity = child.material._baseOpacity * scVis;
-  });
+  if (scVis > 0.001) {
+    const childCount = superclusterGroup.children.length;
+    if (!_scMaterialsCache || _scMaterialsCacheChildCount !== childCount) {
+      _scMaterialsCache = [];
+      superclusterGroup.traverse(child => {
+        if (child.material) {
+          if (child.material._baseOpacity === undefined) child.material._baseOpacity = child.material.opacity;
+          _scMaterialsCache.push(child.material);
+        }
+      });
+      _scMaterialsCacheChildCount = childCount;
+    }
+    for (let i = 0; i < _scMaterialsCache.length; i++) {
+      const m = _scMaterialsCache[i];
+      m.opacity = m._baseOpacity * scVis;
+    }
+  }
   updateWallLabels(scVis);
 
   const cwIn = smoothStep(20000000, 28000000, camDist);
@@ -745,8 +780,11 @@ function updateScaleLayers() {
 const clock = new THREE.Clock();
 const targetPos = new THREE.Vector3();
 const desiredCamPos = new THREE.Vector3();
+let loadingDismissed = false;
+let frameCount = 0;
 
 function animate() {
+  frameCount++;
   requestAnimationFrame(animate);
   const rawDt = clock.getDelta();
   const dt = rawDt * timeSpeed;
@@ -895,7 +933,7 @@ function animate() {
 
   updateScaleIndicator();
 
-  updateRedshift();
+  if (frameCount % 3 === 0) updateRedshift();
 
   const camDist2 = camera.position.length();
   constellationGroup.visible = camDist2 > 200 && camDist2 < 5000;
@@ -903,6 +941,15 @@ function animate() {
   drawMap();
 
   composer.render();
+
+  if (!loadingDismissed) {
+    loadingDismissed = true;
+    const loadingEl = document.getElementById('loading');
+    if (loadingEl) {
+      loadingEl.classList.add('loaded');
+      loadingEl.addEventListener('transitionend', () => loadingEl.remove(), { once: true });
+    }
+  }
 }
 
 animate();

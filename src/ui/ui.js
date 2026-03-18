@@ -53,17 +53,25 @@ const searchInput = document.getElementById('search-input');
 const searchResults = document.getElementById('search-results');
 const allSearchableObjects = [];
 let focusHandler = null;
+let wallFocusTargetRef = null;
 
 export function setUIFocusHandler(handler) {
   focusHandler = handler;
 }
 
-function buildSearchIndex(hitTargets, cosmicSprites) {
+export function setWallFocusTarget(ref) {
+  wallFocusTargetRef = ref;
+}
+
+function buildSearchIndex(hitTargets, cosmicSprites, wallLabelsData = []) {
   hitTargets.forEach(h => {
     if (h.userData.name) allSearchableObjects.push({ name: h.userData.name, mesh: h.userData.planetMesh || h, size: h.userData.size || 1, type: 'solar' });
   });
   cosmicSprites.forEach(s => {
     if (s.userData.name) allSearchableObjects.push({ name: s.userData.name, mesh: s, size: s.userData.flyDist ? s.userData.flyDist / 4 : 50, type: 'cosmic' });
+  });
+  wallLabelsData.forEach(w => {
+    allSearchableObjects.push({ name: w.name, mesh: null, size: 8000000, pos: w.pos, type: 'wall' });
   });
 }
 
@@ -78,8 +86,13 @@ searchInput.addEventListener('input', () => {
     div.className = 'search-result-item';
     div.textContent = m.name;
     div.addEventListener('click', () => {
-      if (focusHandler) {
-        focusHandler(m.mesh, m.size, { minDistance: m.size * 0.5, showReturn: true });
+      let mesh = m.mesh;
+      if (m.type === 'wall' && m.pos && wallFocusTargetRef) {
+        wallFocusTargetRef.position.copy(m.pos);
+        mesh = wallFocusTargetRef;
+      }
+      if (focusHandler && mesh) {
+        focusHandler(mesh, m.size, { minDistance: m.size * 0.5, showReturn: true });
       }
       showInfoPanel(m.name);
       searchResults.style.display = 'none';

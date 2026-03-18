@@ -860,7 +860,7 @@ constellations.forEach(cd => {
   const labelCanvas = document.createElement('canvas');
   const lCtx = labelCanvas.getContext('2d');
   labelCanvas.width = 256; labelCanvas.height = 64;
-  lCtx.font = 'bold 28px Orbitron, Arial, sans-serif';
+  lCtx.font = '700 28px "Orbitron", sans-serif';
   lCtx.textAlign = 'center'; lCtx.textBaseline = 'middle';
   lCtx.fillStyle = 'rgba(80,140,255,0.6)';
   lCtx.fillText(cd.name, 128, 32);

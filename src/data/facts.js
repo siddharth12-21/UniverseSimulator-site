@@ -92,6 +92,8 @@ export const cosmicFacts = {
   'Southern Wall': ['Galaxy wall: ~500 million light-years', 'Part of the southern large-scale structure', 'Connected to the Sculptor supercluster'],
   'Sloan Great Wall': ['Enormous structure: ~1.37 billion light-years', 'One of the largest known structures', 'Discovered in 2003 from the Sloan Digital Sky Survey'],
   'CfA2 Great Wall': ['Galaxy wall: ~750 million light-years across', 'Discovered in 1989 — first great wall found', 'Includes the Coma Cluster and Hercules Supercluster'],
+  'Hercules-Corona Borealis Wall': ['One of the largest known structures: ~10 billion light-years', 'Discovered in 2013, spans much of the northern sky', 'Contains the Hercules and Corona Borealis superclusters'],
+  'Boss Great Wall': ['Massive galaxy wall: ~1 billion light-years across', 'Discovered in 2016 from the BOSS survey', 'One of the largest structures in the observable universe'],
   'Sculptor-Cetus': ['Southern supercluster complex', 'Part of the Sculptor Wall structure', 'Connected to the Pisces-Cetus filament'],
   'Eridanus': ['Supercluster: ~200 million light-years', 'Near the Eridanus supervoid', 'Sparse region with intriguing cold spot in the CMB'],
   'Antlia': ['Southern supercluster: ~130 million light-years', 'Contains the Antlia Cluster', 'Relatively nearby but often overlooked'],
