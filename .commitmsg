@@ -1,0 +1,9 @@
+Universe 2.1: UX overhaul, mini solar systems, bookmarks, keyboard shortcuts
+
+- Right sidebar layout (brightness, tour, constellations, bookmark)
+- Keyboard shortcuts (R, M, Space, Esc, ?)
+- Fly speed controls, bookmark system with rename/delete
+- 63 procedural mini solar systems across all 25 galaxies
+- Info panel close button, earth terminator lighting
+- Guided tour button magenta, bookmark button orange
+- Bug fixes (import mismatch, toLocaleTimeString)

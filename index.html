@@ -23,11 +23,34 @@
   <div id="canvas-container"></div>
   <div id="tooltip"></div>
   <div id="info-panel">
+    <button id="info-close" aria-label="Close">&times;</button>
     <div id="info-name"></div>
     <div id="info-facts"></div>
   </div>
-  <button id="return-btn">Return to Earth</button>
-  <button id="map-btn">Overarching Map</button>
+  <button id="return-btn" aria-label="Return to Earth">Return to Earth</button>
+  <button id="map-btn" aria-label="Open overarching map">Overarching Map</button>
+  <div class="bottom-left-group">
+    <div id="scale-indicator">
+      <div id="scale-bar"></div>
+      <span id="scale-label">1 AU</span>
+    </div>
+    <div class="bottom-left-row">
+      <button id="audio-btn" title="Toggle sound">
+        <svg id="audio-icon-on" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
+        </svg>
+        <svg id="audio-icon-off" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none">
+          <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/>
+        </svg>
+      </button>
+      <div id="fly-speed-panel" title="Fly-to speed">
+        <span>Fly speed:</span>
+        <button id="fly-slow" class="fly-speed-btn">Slow</button>
+        <button id="fly-normal" class="fly-speed-btn active">Normal</button>
+        <button id="fly-fast" class="fly-speed-btn">Fast</button>
+      </div>
+    </div>
+  </div>
   <div id="map-panel">
     <button id="map-close">&times;</button>
     <div id="map-zoom-label">Solar System</div>
@@ -49,32 +72,34 @@
     <span id="time-speed">1x</span>
     <span id="time-date"></span>
   </div>
-  <!-- Scale indicator -->
-  <div id="scale-indicator">
-    <div id="scale-bar"></div>
-    <span id="scale-label">1 AU</span>
-  </div>
-  <!-- Audio toggle -->
-  <button id="audio-btn" title="Toggle sound">
-    <svg id="audio-icon-on" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
-    </svg>
-    <svg id="audio-icon-off" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none">
-      <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/>
-    </svg>
-  </button>
-  <!-- Tour button -->
-  <button id="tour-btn">Guided Tour</button>
   <div id="tour-narration"></div>
-  <div id="brightness-panel">
-    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <circle cx="12" cy="12" r="5"/>
-      <line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/>
-      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
-      <line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/>
-      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
-    </svg>
-    <input id="brightness-slider" type="range" min="0" max="100" value="30" />
+  <div id="shortcuts-panel" class="hidden" aria-hidden="true">
+    <h3>Keyboard Shortcuts</h3>
+    <p><kbd>R</kbd> Return to Earth</p>
+    <p><kbd>M</kbd> Toggle map</p>
+    <p><kbd>Space</kbd> Pause/Play time</p>
+    <p><kbd>Esc</kbd> Close panels</p>
+    <p><kbd>?</kbd> Toggle this help</p>
+  </div>
+  <div class="right-sidebar">
+    <div id="brightness-panel">
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="5"/>
+        <line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/>
+        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+        <line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/>
+        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+      </svg>
+      <input id="brightness-slider" type="range" min="0" max="100" value="30" />
+    </div>
+    <button id="tour-btn">Guided Tour</button>
+    <button id="constellation-toggle" aria-label="Toggle constellation lines" title="Toggle constellation lines">Constellations</button>
+    <div class="sidebar-item-wrapper">
+      <button id="bookmark-btn" aria-label="Bookmark current view" title="Bookmark (click to save, right-click to open list)">Bookmark</button>
+      <div id="bookmarks-panel" class="bookmarks-dropdown">
+        <div id="bookmarks-list"></div>
+      </div>
+    </div>
   </div>
   <script type="module" src="src/main.js"></script>
 </body>

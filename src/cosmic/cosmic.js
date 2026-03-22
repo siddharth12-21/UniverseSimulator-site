@@ -1,6 +1,7 @@
 import * as THREE from 'https://esm.sh/three@0.160.0';
 import { scene, circleTex, nebulaGlowTex } from '../core/scene.js';
 import { starSprites, bhGlow, mwLabelSprite, nebulaSprites, galaxySprites, mwLocalSprite, GALAXY_OFFSET } from '../galaxy/galaxy.js';
+import { miniStarSprites } from '../galaxy/miniSolarSystems.js';
 
 // --- Phase 4.5: Superclusters (~2000000 - 30000000 units) ---
 const superclusterGroup = new THREE.Group();
@@ -768,6 +769,6 @@ const cmbGlow = new THREE.Mesh(
 cosmicGroup.add(cmbGlow);
 
 // Populate cosmic sprite array for interaction
-const cosmicSprites = [...starSprites, bhGlow, mwLabelSprite, ...nebulaSprites, ...galaxySprites, mwLocalSprite, greatAttractorGlow, ...piscesCetus.sprites];
+const cosmicSprites = [...starSprites, bhGlow, mwLabelSprite, ...nebulaSprites, ...galaxySprites, ...miniStarSprites, mwLocalSprite, greatAttractorGlow, ...piscesCetus.sprites];
 
 export { superclusterGroup, lanGroup, LAN_CENTER, greatAttractorGlow, makeStreamCluster, makeFilamentBridge, piscesCetus, cosmicGroup, cosmicSprites, cosmicPoints, make3DLabel, transitionFilamentGroup, heroFilamentSegments, wallLabelsData };

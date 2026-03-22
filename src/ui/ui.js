@@ -7,6 +7,7 @@ import { nearbyStarData } from '../galaxy/galaxy.js';
 const infoPanel = document.getElementById('info-panel');
 const infoName = document.getElementById('info-name');
 const infoFacts = document.getElementById('info-facts');
+document.getElementById('info-close')?.addEventListener('click', () => hideInfoPanel());
 
 function showInfoPanel(name) {
   const facts = planetFacts[name] || cosmicFacts[name];

@@ -3,7 +3,7 @@ import { OrbitControls } from 'https://esm.sh/three@0.160.0/examples/jsm/control
 
 // Core
 import { scene, camera, renderer, composer, bloomPass, circleTex, nebulaGlowTex, container, onResize } from './core/scene.js';
-import { initLighting } from './core/lighting.js';
+import { initLighting, updateEarthTerminator } from './core/lighting.js';
 import { EARTH_MIN, EARTH_MAX, CENTER_DIST, MAP_SIZE, MAP_VIEW_MIN, MAP_VIEW_MAX, SUN_DIST } from './config.js';
 
 // Objects
@@ -18,6 +18,9 @@ import { stellarGroup, stellarPoints, nearbyStarData, starSprites, galaxyGroup, 
 
 // Cosmic
 import { superclusterGroup, greatAttractorGlow, cosmicGroup, cosmicSprites, cosmicPoints, piscesCetus, transitionFilamentGroup, heroFilamentSegments, wallLabelsData } from './cosmic/cosmic.js';
+
+// Mini solar systems in other galaxies
+import { updateMiniSystems, miniSystemFacts } from './galaxy/miniSolarSystems.js';
 
 // Data
 import { planetFacts, cosmicFacts, objectStats, travelTimes } from './data/facts.js';
@@ -39,6 +42,8 @@ controls.minDistance = 0.5;
 controls.maxDistance = 100000000;
 controls.autoRotate = true;
 controls.autoRotateSpeed = 0.5;
+if (typeof controls.touchRotateSpeed !== 'undefined') controls.touchRotateSpeed = 1.5;
+if (typeof controls.touchZoomSpeed !== 'undefined') controls.touchZoomSpeed = 1.2;
 
 window.addEventListener('resize', onResize);
 
@@ -59,6 +64,8 @@ const hitTargets = [earthHit, sunHit, ...planets.map(p => p.hitSphere), ...dwarf
 let focusTarget = earth;
 let focusSize = 1.0;
 let flyingIn = false;
+let flyToSpeed = 0.05;
+let constellationsVisible = true;
 
 renderer.domElement.addEventListener('wheel', () => { flyingIn = false; flyingToCenter = false; }, { passive: true });
 
@@ -279,6 +286,109 @@ let mapOpen = false;
 
 mapBtn.addEventListener('click', () => { mapOpen = true; mapPanel.style.display = 'block'; });
 mapClose.addEventListener('click', () => { mapOpen = false; mapPanel.style.display = 'none'; });
+
+// --- Fly speed ---
+document.getElementById('fly-slow')?.addEventListener('click', () => { flyToSpeed = 0.02; document.querySelectorAll('.fly-speed-btn').forEach(b => b.classList.remove('active')); document.getElementById('fly-slow')?.classList.add('active'); });
+document.getElementById('fly-normal')?.addEventListener('click', () => { flyToSpeed = 0.05; document.querySelectorAll('.fly-speed-btn').forEach(b => b.classList.remove('active')); document.getElementById('fly-normal')?.classList.add('active'); });
+document.getElementById('fly-fast')?.addEventListener('click', () => { flyToSpeed = 0.15; document.querySelectorAll('.fly-speed-btn').forEach(b => b.classList.remove('active')); document.getElementById('fly-fast')?.classList.add('active'); });
+
+// --- Constellation toggle ---
+const constellationToggle = document.getElementById('constellation-toggle');
+constellationToggle?.classList.toggle('active', constellationsVisible);
+constellationToggle?.addEventListener('click', () => { constellationsVisible = !constellationsVisible; constellationToggle.classList.toggle('active', constellationsVisible); });
+
+// --- Theme toggle ---
+document.getElementById('theme-toggle')?.addEventListener('click', () => { document.body.classList.toggle('light-theme'); localStorage.setItem('universe-theme', document.body.classList.contains('light-theme') ? 'light' : 'dark'); });
+if (localStorage.getItem('universe-theme') === 'light') document.body.classList.add('light-theme');
+document.getElementById('constellation-toggle')?.classList.toggle('active', constellationsVisible);
+
+// --- Keyboard shortcuts ---
+document.addEventListener('keydown', (e) => {
+  if (e.target.matches('input, textarea')) return;
+  if (e.key === 'r' || e.key === 'R') { returnBtn?.click(); e.preventDefault(); }
+  if (e.key === 'm' || e.key === 'M') { mapOpen = !mapOpen; mapPanel.style.display = mapOpen ? 'block' : 'none'; e.preventDefault(); }
+  if (e.key === ' ') { document.getElementById('time-pause')?.click(); e.preventDefault(); }
+  if (e.key === 'Escape') { mapOpen = false; mapPanel.style.display = 'none'; document.getElementById('bookmarks-panel')?.classList.remove('open'); document.getElementById('shortcuts-panel')?.classList.add('hidden'); document.getElementById('shortcuts-panel')?.setAttribute('aria-hidden', 'true'); }
+  if (e.key === '?') { const sp = document.getElementById('shortcuts-panel'); sp?.classList.toggle('hidden'); sp?.setAttribute('aria-hidden', sp?.classList.contains('hidden') ? 'true' : 'false'); e.preventDefault(); }
+});
+
+// --- Bookmarks ---
+const BOOKMARKS_KEY = 'universe-bookmarks';
+let bookmarks = JSON.parse(localStorage.getItem(BOOKMARKS_KEY) || '[]');
+
+function getFocusName() {
+  if (focusTarget === earth) return 'Earth';
+  if (focusTarget === sunCore) return 'Sun';
+  if (focusTarget === wallFocusTarget) return infoName?.textContent || 'Galaxy Wall';
+  return focusTarget?.userData?.name || infoName?.textContent || 'View';
+}
+
+function saveBookmark() {
+  const name = getFocusName();
+  const b = { name: `${name} (${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })})`, camPos: camera.position.clone().toArray(), target: controls.target.clone().toArray(), focusName: name, focusSize };
+  bookmarks.push(b);
+  if (bookmarks.length > 20) bookmarks = bookmarks.slice(-20);
+  localStorage.setItem(BOOKMARKS_KEY, JSON.stringify(bookmarks));
+  renderBookmarksList();
+}
+
+function restoreBookmark(b) {
+  camera.position.set(...b.camPos);
+  controls.target.set(...b.target);
+  const fn = b.focusName;
+  if (fn === 'Earth') { focusTarget = earth; focusSize = 1; }
+  else if (fn === 'Sun') { focusTarget = sunCore; focusSize = 3; }
+  else if (wallLabelsData.some(w => w.name === fn)) { wallFocusTarget.position.set(...b.target); focusTarget = wallFocusTarget; focusSize = b.focusSize || 8000000; }
+  else {
+    const hit = hitTargets.find(h => h.userData?.name === fn);
+    if (hit) { focusTarget = hit.userData.planetMesh || hit; focusSize = hit.userData?.size || 1; }
+    else {
+      const cs = cosmicSprites.find(s => s.userData?.name === fn);
+      if (cs) { focusTarget = cs; focusSize = (cs.userData?.flyDist || 50) / 4; }
+    }
+  }
+  flyingIn = false;
+  updateMoonVisibility(focusTarget);
+  showInfoPanel(fn);
+  returnBtn.style.display = focusTarget === earth ? 'none' : 'block';
+  document.getElementById('bookmarks-panel')?.classList.remove('open');
+}
+
+function renderBookmarksList() {
+  const list = document.getElementById('bookmarks-list');
+  if (!list) return;
+  list.innerHTML = bookmarks.map((b, i) =>
+    `<div class="bookmark-item"><span class="bookmark-name">${b.name}</span><span class="bookmark-actions"><button class="bookmark-edit" data-i="${i}" aria-label="Rename" title="Rename">&#9998;</button><button class="bookmark-del" data-i="${i}" aria-label="Delete" title="Delete">×</button></span></div>`
+  ).join('') || '<span style="opacity:0.6;font:500 12px Orbitron,sans-serif;padding:10px 14px;display:block">No bookmarks yet</span>';
+  list.querySelectorAll('.bookmark-item').forEach((el, i) => {
+    const delBtn = el.querySelector('.bookmark-del');
+    const editBtn = el.querySelector('.bookmark-edit');
+    if (delBtn) delBtn.addEventListener('click', (e) => { e.stopPropagation(); bookmarks.splice(+delBtn.dataset.i, 1); localStorage.setItem(BOOKMARKS_KEY, JSON.stringify(bookmarks)); renderBookmarksList(); });
+    if (editBtn) editBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const nameSpan = el.querySelector('.bookmark-name');
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.value = bookmarks[i].name;
+      input.className = 'bookmark-rename-input';
+      nameSpan.replaceWith(input);
+      input.focus();
+      input.select();
+      const save = () => {
+        const val = input.value.trim();
+        if (val) bookmarks[i].name = val;
+        localStorage.setItem(BOOKMARKS_KEY, JSON.stringify(bookmarks));
+        renderBookmarksList();
+      };
+      input.addEventListener('blur', save);
+      input.addEventListener('keydown', (ke) => { if (ke.key === 'Enter') input.blur(); if (ke.key === 'Escape') { input.value = bookmarks[i].name; input.blur(); } });
+    });
+    el.addEventListener('click', (e) => { if (!e.target.closest('.bookmark-del, .bookmark-edit, .bookmark-rename-input')) restoreBookmark(bookmarks[i]); });
+  });
+}
+
+document.getElementById('bookmark-btn')?.addEventListener('click', (e) => { if (e.button === 0) saveBookmark(); });
+document.getElementById('bookmark-btn')?.addEventListener('contextmenu', (e) => { e.preventDefault(); document.getElementById('bookmarks-panel')?.classList.toggle('open'); renderBookmarksList(); });
 
 const MAP_CX = MAP_SIZE / 2;
 const MAP_CY = MAP_SIZE / 2;
@@ -587,6 +697,7 @@ mapCanvas.addEventListener('click', (e) => {
 // POPULATE MAP & SEARCH INDEX
 // ============================================================
 
+Object.assign(cosmicFacts, miniSystemFacts);
 populateCosmicMapObjects();
 setWallFocusTarget(wallFocusTarget);
 buildSearchIndex(hitTargets, cosmicSprites, wallLabelsData);
@@ -811,6 +922,8 @@ function animate() {
     dp.mesh.rotation.y += dt * 0.2;
   }
 
+  updateMiniSystems(dt);
+
   for (const c of comets) {
     c.angle += dt * c.spd;
     const e = (c.aph - c.peri) / (c.aph + c.peri);
@@ -906,7 +1019,7 @@ function animate() {
     const camDir = camera.position.clone().sub(targetPos).normalize();
     const idealDist = Math.max(focusSize * 4, 1);
     desiredCamPos.copy(targetPos).addScaledVector(camDir, idealDist);
-    camera.position.lerp(desiredCamPos, 0.05);
+    camera.position.lerp(desiredCamPos, flyToSpeed);
 
     const distToGoal = camera.position.distanceTo(desiredCamPos);
     if (distToGoal < idealDist * 0.05 + 0.1) flyingIn = false;
@@ -928,6 +1041,7 @@ function animate() {
   controls.update();
 
   updateLightPulses(t, dt);
+  updateEarthTerminator(camera.position.length());
 
   updateAudio();
 
@@ -936,7 +1050,7 @@ function animate() {
   if (frameCount % 3 === 0) updateRedshift();
 
   const camDist2 = camera.position.length();
-  constellationGroup.visible = camDist2 > 200 && camDist2 < 5000;
+  constellationGroup.visible = constellationsVisible && camDist2 > 200 && camDist2 < 5000;
 
   drawMap();
 
