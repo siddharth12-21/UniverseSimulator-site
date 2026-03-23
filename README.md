@@ -2,6 +2,10 @@
 
 A 3D interactive universe simulator built with Three.js. Explore from Earth to the cosmic web—zoom from our solar system to nearby stars, the Milky Way galaxy, local group, superclusters, and the observable universe.
 
+## Download
+
+- [Download for Mac (.dmg)](https://github.com/siddharth12-21/UniverseSimulator/releases/latest)
+
 ## Live Site
 
 - [UniverseSimulator Live](https://siddharth12-21.github.io/UniverseSimulator-site/)
